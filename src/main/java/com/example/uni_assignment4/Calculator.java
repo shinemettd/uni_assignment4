@@ -1,26 +1,32 @@
 package com.example.uni_assignment4;
 
-import javafx.scene.control.TextField;
+/*
+ *
+ * @author shinemettd (David O.)
+ *
+ */
 
 public class Calculator {
-    private double operand1;
-    private double operand2;
-    private char operator;
-    private boolean operatorSet;
-    private double result;
+    private double operand1; //first operand
+    private double operand2; //second operand
+    private char operator; //expression operator
+    private boolean operatorSet; //flag for operator existence
+    private double result; //final result of expression
 
-    private String symbolCollector;
-    private int operatorIndex;
-    private boolean dotSet;
+    private String mainExpression; //instance that contains all expression
+    private int operatorIndex; //operator index for future speculations with main expression
+    private boolean dotSet; // flag for dot existence to avoid unnecessary bugs
 
-    CalculatorController controller;
+    CalculatorController controller; //controller object that will send all user input symbols
 
     Calculator(CalculatorController controller) {
+        //initialize controller object
         this.controller = controller;
+        //setting default values
         operand1 = 0.0;
         operand2 = 0.0;
         result = 0.0;
-        symbolCollector = "";
+        mainExpression = "";
         operatorIndex = -1;
         operatorSet = false;
         operator = ' ';
@@ -37,90 +43,108 @@ public class Calculator {
 
     public void setOperator(char operator) {
         this.operator = operator;
+        //sets operator and activates operatorSet flag
         operatorSet = true;
-        operatorIndex = symbolCollector.length();
+        //also it sets the operator index
+        operatorIndex = mainExpression.length();
     }
 
     public double getResult() {
+        //idk why the assignment says to write this method
         return result;
     }
 
-    public String getSymbolCollector() {
-        return symbolCollector;
+    public String getMainExpression() {
+        //main method that returns expression to the controller
+        return mainExpression;
     }
 
     public void getSymbol(char controllerMessage) {
-        System.out.println("caught " + controllerMessage + " in model");
+        //major case when user click on equal sign -> calculates all expression and sets mainExpression value
         if (controllerMessage == '=') {
             if (operatorSet) {
+                //automatically adds zero to the operand if user clicked dot and didn't fill in the value
                 addZero();
-                setOperand2(Double.parseDouble(symbolCollector.substring(operatorIndex + 1, symbolCollector.length()))); //
-                System.out.println("Set 2nd op " + operand2);
-                symbolCollector = "";
-                calculateAndUpdate();
-                operatorSet = false;
+                //cutting second operand after operator by using operatorIndex instance
+                setOperand2(Double.parseDouble(mainExpression.substring(operatorIndex + 1)));
+                //reset main expression
+                mainExpression = "";
+                //calling calculate method
+                calculate();
             }
-        } else if (controllerMessage == 'С' && !isOperator(controllerMessage) || symbolCollector.equals("NaN")) {
+        } else if (controllerMessage == 'С' && !isOperator(controllerMessage) || mainExpression.equals("NaN")) {
+            //clear all values after user choice "Clear" or after division by zero result
             clearAll();
-            System.out.println("Cleared all");
         } else if (controllerMessage == 'E' && !isOperator(controllerMessage)) {
-            symbolCollector = symbolCollector.substring(0, operatorIndex + 1);
+            //button CE clears only part after operator
+            mainExpression = mainExpression.substring(0, operatorIndex + 1);
+            //resets second operand value
             setOperand2(0.0);
+            //resets dot flag
             dotSet = false;
-            System.out.println("set 0.0 to 2nd op");
         } else if (controllerMessage == 'N') {
-            if (symbolCollector.charAt(0) == '-' && !operatorSet) {
-                symbolCollector = symbolCollector.substring(1, symbolCollector.length());
+            //adding to the first value negativity and vice versa
+            if (mainExpression.charAt(0) == '-' && !operatorSet) {
+                mainExpression = mainExpression.substring(1);
             } else if (!operatorSet) {
-                symbolCollector = '-' + symbolCollector;
+                mainExpression = '-' + mainExpression;
             }
         } else if (controllerMessage == '.') {
+            //activating dot flag when user clicks at dot
             if (!dotSet) {
                 dotSet = true;
-                symbolCollector += controllerMessage;
+                mainExpression += controllerMessage;
             }
         } else if (!isOperator(controllerMessage)) {
-            symbolCollector += controllerMessage;
+            //it's adding digits to the main expression
+            mainExpression += controllerMessage;//operator case
         } else {
+            //operator case
+
+            //if operator wasn't set before
             if (!operatorSet && isOperator(controllerMessage)) {
+                //automatically adds a zero after the period
                 addZero();
+                //sets operator
                 setOperator(controllerMessage);
-                setOperand1(Double.parseDouble(symbolCollector));
-                symbolCollector += controllerMessage;
-                System.out.println("zerd symbolColl and set op with op1" + operator + " with " + operand1);
+                //sets first operand
+                setOperand1(Double.parseDouble(mainExpression));
+                //add character to the main expression
+                mainExpression += controllerMessage;
+            //if operator was set before
             } else {
+                //automatically adds a zero after the period
                 addZero();
+                //resets operator
                 setOperator(controllerMessage);
-                symbolCollector = symbolCollector.substring(0, symbolCollector.length() - 1);
-                symbolCollector += controllerMessage;
-                System.out.println("refreshd operator w " + controllerMessage);
+                //deletes last operator and adding new one
+                mainExpression = mainExpression.substring(0, mainExpression.length() - 1);
+                //add character to the main expression
+                mainExpression += controllerMessage;
             }
         }
     }
 
-    private void calculateAndUpdate() {
-        System.out.println("OP1 = " + operand1 + "\nOP2 = " + operand2 + "\nOPS = " + operator);
-        switch(operator) {
-            case '+':
-                result = operand1 + operand2;
-                break;
-            case '-':
-                result = operand1 - operand2;
-                break;
-            case '*':
-                result = operand1 * operand2;
-                break;
-            case '/':
+    private void calculate() {
+        //switch case with math expressions
+        switch (operator) {
+            case '+' -> result = operand1 + operand2;
+            case '-' -> result = operand1 - operand2;
+            case '*' -> result = operand1 * operand2;
+            case '/' -> {
+                //only allows to divide by non-zero operand
                 if (operand2 != 0) {
                     result = operand1 / operand2;
                 }
-                break;
+            }
         }
-        String answer = (operand2 == 0 && operator == '/') ? "NaN" : cutExcessZero(result);
-        System.out.println("got ans=" + answer);
-        symbolCollector = answer;
+        //resets operator flag
+        operatorSet = false;
+        //final mains expression refresh by cutting zero remainder from double value
+        //and setting "NaN" value if division by zero occurred
+        mainExpression = (operand2 == 0 && operator == '/') ? "NaN" : cutExcessZero(result);
     }
-
+    //resets all values to the default
     private void clearAll() {
         operand1 = 0.0;
         operand2 = 0.0;
@@ -128,22 +152,23 @@ public class Calculator {
         operator = ' ';
         operatorSet = false;
         operatorIndex = -1;
-        symbolCollector = "";
+        mainExpression = "";
         dotSet = false;
     }
-
+    //method that itself adds a zero if user didn't enter any other value after using the dot
     private void addZero() {
-        if (symbolCollector.charAt(symbolCollector.length() - 1) == '.') {
-            symbolCollector += '0';
+        //checks if there was a dot
+        if (mainExpression.charAt(mainExpression.length() - 1) == '.') {
+            mainExpression += '0';
         }
+        //resets dot flag
         dotSet = false;
     }
-
+    //method that cuts zero remainder from double value
     private String cutExcessZero(double answer) {
-        String stringAnswer = (int) answer == answer ? String.valueOf((int) answer) : String.valueOf(answer);
-        return stringAnswer;
+        return (int) answer == answer ? String.valueOf((int) answer) : String.valueOf(answer);
     }
-
+    //method that return true if symbol is operator and false if not
     private boolean isOperator(char symbol) {
         return symbol == '+' || symbol == '-' || symbol == '*' || symbol == '/';
     }
